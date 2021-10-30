@@ -257,7 +257,7 @@ class Function:
         display['net_buy_cap'] += 2
         try:
             fig = px.treemap(display,
-                             path=["sector1", "sector2"],
+                             path=["sector1", "sector2", "name"],
                              values='net_buy_cap',
                              color='current_%',
                              hover_data=['current_%'],
