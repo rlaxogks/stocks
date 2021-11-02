@@ -34,7 +34,8 @@ class Function:
         self.cache3_0 = {}
         self.cache3 = {}
         """
-        self.dashboard : {item_code : { name : xxx, net_buy_cap : yyy, sector1 : zzz, sector2 : www, current_% : ppp}}
+        self.dashboard : {item_code : { name : xxx, market_cap : ppp, net_buy_cap : yyy, sector1 : zzz, sector2 : www,\
+         current_% : ppp}}
         """
         self.dashboard = {}
         """
@@ -108,7 +109,7 @@ class Function:
                     # store in dashboard
                     if market_cap >= 5000:
                         self.dashboard.update(
-                            {code: {'name': name, 'net_buy_cap': None, 'current_price': None,
+                            {code: {'name': name, 'market_cap': market_cap, 'net_buy_cap': None, 'current_price': None,
                                     'current_%': None, 'sector1': sector1, 'sector2': sector2}}
                         )
 
@@ -216,7 +217,7 @@ class Function:
 
         # display
         self.cnt += 1
-        if self.cnt % 2560 == 0:
+        if self.cnt % 10240 == 0:
             self.display()
         elif self.cnt % 10240 == 2560:
             print('collecting...25%')
@@ -254,18 +255,35 @@ class Function:
         display = pd.DataFrame(board).transpose().dropna()
         display = display.sort_values('net_buy_cap', ascending=False)
         print(display)
-        display['net_buy_cap'] += 2
+        display[['net_buy_cap', 'current_price', 'market_cap', 'current_%']] \
+            = display[['net_buy_cap', 'current_price', 'market_cap', 'current_%']].apply(pd.to_numeric)
         try:
-            fig = px.treemap(display,
-                             path=["sector1", "sector2", "name"],
-                             values='net_buy_cap',
-                             color='current_%',
-                             hover_data=['current_%'],
-                             color_continuous_scale='RdBu',
-                             color_continuous_midpoint=np.average(display['current_%'], weights=display['net_buy_cap'])
-                             )
-            fig.update_layout(margin=dict(t=50, l=25, r=25, b=25))
-            fig.show()
+            fig1 = px.treemap(display,
+                              path=["sector1", "sector2", "name"],
+                              values='market_cap',
+                              color='net_buy_cap',
+                              hover_data=['net_buy_cap'],
+                              color_continuous_scale='RdBu_r',
+                              color_continuous_midpoint=np.average(display['net_buy_cap'], weights=display['market_cap'])
+                              )
+            fig1.update_layout(margin=dict(t=50, l=25, r=25, b=25))
+            fig1.update_layout(title="면적 : 시총 // 색상 : 시총대비 프로그램 순매수")
+            fig1.show()
+
+            display['net_buy_cap'] += 2
+            fig2 = px.treemap(display,
+                              path=["sector1", "sector2", "name"],
+                              values='net_buy_cap',
+                              color='current_%',
+                              hover_data=['current_%'],
+                              color_continuous_scale='RdBu_r',
+                              color_continuous_midpoint=np.average(display['current_%'], weights=display['net_buy_cap'])
+                              )
+            fig2.update_layout(margin=dict(t=50, l=25, r=25, b=25))
+            fig2.update_layout(title="면적 : 시총대비 프로그램 순매수 // 색상 : 전일대비")
+            fig2.show()
+
+
         except Exception as e:
             print(e)
         print(f"Elpased time : {time.time() - start}")
