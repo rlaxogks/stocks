@@ -27,7 +27,7 @@ class Function:
         self.cache1 : stock record 들을 받아서 임시저장. 2**10 (1024개 가 되면 flush)
         self.cache2 : program record 들을 받아서 임시저장. 다 차면 flush
         self.cache3_0 : {name : (sector1, sector2)}
-        self.cache3 : {item_code : (name, market_cap, sector1, sector2)} dictionary 
+        self.cache3 : {item_code : (name, market_cap, sector1, sector2)} dictionary
         """
         self.cache1 = []
         self.cache2 = []
@@ -35,14 +35,14 @@ class Function:
         self.cache3 = {}
         """
         self.dashboard : {item_code : { name : xxx, market_cap : ppp, net_buy_cap : yyy, sector1 : zzz, sector2 : www,\
-         current_% : ppp}}
+         current_% : ppp, 시총등급 : k, 거래량비 : ttt}}
         """
         self.dashboard = {}
         """
         self.cnt : 프로그램 매매 틱 counter
         """
         self.cnt = 0
-        
+
     #######################################################################################################
     # Basic Setting
     #######################################################################################################
@@ -107,11 +107,19 @@ class Function:
                     self.cache3[code] = (name, market_cap, sector1, sector2)
 
                     # store in dashboard
-                    if market_cap >= 5000:
-                        self.dashboard.update(
-                            {code: {'name': name, 'market_cap': market_cap, 'net_buy_cap': None, 'current_price': None,
-                                    'current_%': None, 'sector1': sector1, 'sector2': sector2}}
-                        )
+                    if market_cap <= 5000:
+                        level = 1
+                    elif (market_cap >= 5000) and (market_cap <= 10000):
+                        level = 2
+                    elif (market_cap >= 10000) and (market_cap <= 100000):
+                        level = 3
+                    elif market_cap >= 100000:
+                        level = 4
+                    self.dashboard.update(
+                        {code: {'name': name, 'market_cap': market_cap, 'net_buy_cap': None, 'current_price': None,
+                                'current_%': None, 'sector1': sector1, 'sector2': sector2, '시총등급': level,
+                                '거래량비': None}}
+                    )
 
         # flush to db
         cur = self.conn.cursor()
@@ -198,7 +206,7 @@ class Function:
                 d2d_price=int(RealList[3]),
                 d2d_percentage=float(RealList[4]),
                 acc_vol=abs(int(RealList[5])),
-                net_vol=abs(int(RealList[10])),
+                net_vol=int(RealList[10]),
                 net_buy=int(RealList[11]),
                 net_buy_cap=int(RealList[11]) / self.cache3[item_code][1]
             ))
@@ -211,6 +219,7 @@ class Function:
                 self.dashboard[item_code]['net_buy_cap'] = int(RealList[11]) / self.cache3[item_code][1]
                 self.dashboard[item_code]['current_price'] = abs(int(RealList[1]))
                 self.dashboard[item_code]['current_%'] = float(RealList[4])
+                self.dashboard[item_code]['거래량비'] = float(int(RealList[10])/abs(int(RealList[5])))
 
         except:
             pass
@@ -255,34 +264,45 @@ class Function:
         display = pd.DataFrame(board).transpose().dropna()
         display = display.sort_values('net_buy_cap', ascending=False)
         print(display)
-        display[['net_buy_cap', 'current_price', 'market_cap', 'current_%']] \
-            = display[['net_buy_cap', 'current_price', 'market_cap', 'current_%']].apply(pd.to_numeric)
+        display[['net_buy_cap', 'current_price', 'market_cap', 'current_%', '시총등급', '거래량비']] \
+            = display[['net_buy_cap', 'current_price', 'market_cap', 'current_%', '시총등급', '거래량비']].apply(pd.to_numeric)
         try:
+            date = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
             fig1 = px.treemap(display,
                               path=["sector1", "sector2", "name"],
-                              values='market_cap',
+                              values='시총등급',
                               color='net_buy_cap',
                               hover_data=['net_buy_cap'],
                               color_continuous_scale='RdBu_r',
                               color_continuous_midpoint=np.average(display['net_buy_cap'], weights=display['market_cap'])
                               )
             fig1.update_layout(margin=dict(t=50, l=25, r=25, b=25))
-            fig1.update_layout(title="면적 : 시총 // 색상 : 시총대비 프로그램 순매수")
+            fig1.update_layout(title=f"면적 : 시총 // 색상 : 시총대비 프로그램 순매수 // 업데이트 시간 : {date}")
             fig1.show()
 
-            display['net_buy_cap'] += 2
             fig2 = px.treemap(display,
                               path=["sector1", "sector2", "name"],
-                              values='net_buy_cap',
+                              values='시총등급',
+                              color='거래량비',
+                              hover_data=['거래량비'],
+                              color_continuous_scale='RdBu_r',
+                              color_continuous_midpoint=np.average(display['거래량비'], weights=display['market_cap'])
+                              )
+            fig2.update_layout(margin=dict(t=50, l=25, r=25, b=25))
+            fig2.update_layout(title=f"면적 : 시총 // 색상 : 거래량비 // 업데이트 시간 : {date}")
+            fig2.show()
+
+            fig3 = px.treemap(display,
+                              path=["sector1", "sector2", "name"],
+                              values='시총등급',
                               color='current_%',
                               hover_data=['current_%'],
                               color_continuous_scale='RdBu_r',
-                              color_continuous_midpoint=np.average(display['current_%'], weights=display['net_buy_cap'])
+                              color_continuous_midpoint=np.average(display['current_%'], weights=display['market_cap'])
                               )
-            fig2.update_layout(margin=dict(t=50, l=25, r=25, b=25))
-            fig2.update_layout(title="면적 : 시총대비 프로그램 순매수 // 색상 : 전일대비")
-            fig2.show()
-
+            fig3.update_layout(margin=dict(t=50, l=25, r=25, b=25))
+            fig3.update_layout(title=f"면적 : 시총 // 색상 : 전일대비 // 업데이트 시간 : {date}")
+            fig3.show()
 
         except Exception as e:
             print(e)
