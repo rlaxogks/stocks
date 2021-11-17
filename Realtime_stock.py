@@ -219,7 +219,7 @@ class Function:
                 self.dashboard[item_code]['net_buy_cap'] = int(RealList[11]) / self.cache3[item_code][1]
                 self.dashboard[item_code]['current_price'] = abs(int(RealList[1]))
                 self.dashboard[item_code]['current_%'] = float(RealList[4])
-                self.dashboard[item_code]['거래량비'] = float(int(RealList[10])/abs(int(RealList[5])))
+                self.dashboard[item_code]['거래량비'] = int(float(int(RealList[10])/abs(int(RealList[5])))*100)
 
         except:
             pass
@@ -268,31 +268,8 @@ class Function:
             = display[['net_buy_cap', 'current_price', 'market_cap', 'current_%', '시총등급', '거래량비']].apply(pd.to_numeric)
         try:
             date = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
+
             fig1 = px.treemap(display,
-                              path=["sector1", "sector2", "name"],
-                              values='시총등급',
-                              color='net_buy_cap',
-                              hover_data=['net_buy_cap'],
-                              color_continuous_scale='RdBu_r',
-                              color_continuous_midpoint=np.average(display['net_buy_cap'], weights=display['market_cap'])
-                              )
-            fig1.update_layout(margin=dict(t=50, l=25, r=25, b=25))
-            fig1.update_layout(title=f"면적 : 시총 // 색상 : 시총대비 프로그램 순매수 // 업데이트 시간 : {date}")
-            fig1.show()
-
-            fig2 = px.treemap(display,
-                              path=["sector1", "sector2", "name"],
-                              values='시총등급',
-                              color='거래량비',
-                              hover_data=['거래량비'],
-                              color_continuous_scale='RdBu_r',
-                              color_continuous_midpoint=np.average(display['거래량비'], weights=display['market_cap'])
-                              )
-            fig2.update_layout(margin=dict(t=50, l=25, r=25, b=25))
-            fig2.update_layout(title=f"면적 : 시총 // 색상 : 거래량비 // 업데이트 시간 : {date}")
-            fig2.show()
-
-            fig3 = px.treemap(display,
                               path=["sector1", "sector2", "name"],
                               values='시총등급',
                               color='current_%',
@@ -300,8 +277,32 @@ class Function:
                               color_continuous_scale='RdBu_r',
                               color_continuous_midpoint=np.average(display['current_%'], weights=display['market_cap'])
                               )
+            fig1.update_layout(margin=dict(t=50, l=25, r=25, b=25))
+            fig1.update_layout(title=f"면적 : 시총 // 색상 : 전일대비 // 업데이트 시간 : {date}")
+            fig1.show()
+
+            fig2 = px.treemap(display,
+                              path=["sector1", "sector2", "name"],
+                              values='시총등급',
+                              color='net_buy_cap',
+                              hover_data=['net_buy_cap'],
+                              color_continuous_scale='RdBu_r',
+                              color_continuous_midpoint=np.average(display['net_buy_cap'], weights=display['market_cap'])
+                              )
+            fig2.update_layout(margin=dict(t=50, l=25, r=25, b=25))
+            fig2.update_layout(title=f"면적 : 시총 // 색상 : 시총대비 프로그램 순매수 // 업데이트 시간 : {date}")
+            fig2.show()
+
+            fig3 = px.treemap(display,
+                              path=["sector1", "sector2", "name"],
+                              values='시총등급',
+                              color='거래량비',
+                              hover_data=['거래량비'],
+                              color_continuous_scale='RdBu_r',
+                              color_continuous_midpoint=np.average(display['거래량비'], weights=display['market_cap'])
+                              )
             fig3.update_layout(margin=dict(t=50, l=25, r=25, b=25))
-            fig3.update_layout(title=f"면적 : 시총 // 색상 : 전일대비 // 업데이트 시간 : {date}")
+            fig3.update_layout(title=f"면적 : 시총 // 색상 : 거래량비 // 업데이트 시간 : {date}")
             fig3.show()
 
         except Exception as e:
